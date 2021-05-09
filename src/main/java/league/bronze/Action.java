@@ -6,6 +6,10 @@ class Action {
     static final String GROW = "GROW";
     static final String COMPLETE = "COMPLETE";
 
+    private String type;
+    private Integer targetCellIdx;
+    private Integer sourceCellIdx;
+
     static Action parse(String action) {
         String[] parts = action.split(" ");
         switch (parts[0]) {
@@ -19,10 +23,6 @@ class Action {
             return new Action(parts[0], Integer.valueOf(parts[1]));
         }
     }
-
-    String type;
-    Integer targetCellIdx;
-    Integer sourceCellIdx;
 
     public Action(String type, Integer sourceCellIdx, Integer targetCellIdx) {
         this.type = type;
@@ -48,4 +48,28 @@ class Action {
         }
         return String.format("%s %d", type, targetCellIdx);
     }
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public Integer getTargetCellIdx() {
+		return targetCellIdx;
+	}
+
+	public void setTargetCellIdx(Integer targetCellIdx) {
+		this.targetCellIdx = targetCellIdx;
+	}
+
+	public Integer getSourceCellIdx() {
+		return sourceCellIdx;
+	}
+
+	public void setSourceCellIdx(Integer sourceCellIdx) {
+		this.sourceCellIdx = sourceCellIdx;
+	}
 }
