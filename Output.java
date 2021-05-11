@@ -168,24 +168,24 @@ class Game {
 	}
 
 	public Action getNextAction() {
-		// TODO: write your algorithm here
-
 		this.addMineTreeToCategory(this.seeds, this.twigs, this.mediumTrees, this.bigTrees);
 		
-		this.possibleActions.sort((data1, data2) -> {
-			if (data1.getTargetCellIdx() != null && data2.getTargetCellIdx() != null) {
-				return data1.getTargetCellIdx().compareTo(data2.getTargetCellIdx());
+		this.possibleActions.sort((act1, act2) -> {
+			if (act1.getSourceCellIdx() != null && act2.getSourceCellIdx() != null) {
+				return act2.getSourceCellIdx().compareTo(act1.getSourceCellIdx());
 			}
 
 			return 1;
 		});
 		this.possibleActions.forEach(System.err::println);
 		
+		List<Action> treesToSeed = new ArrayList<>();
 		List<Tree> seedsToGrow = new ArrayList<>();
 		List<Tree> twigsToGrow = new ArrayList<>();
 		List<Tree> mediumTreesToGrow = new ArrayList<>();
 		List<Tree> treesToComplete = new ArrayList<>();
-		List<Action> treesToSeed = new ArrayList<>();
+
+		this.board.sort((cell1, cell2) -> cell1.getRichess().compareTo(cell1.getRichess()));
 
 		this.possibleActions.forEach(action -> {
 			switch (action.getType()) {
@@ -224,160 +224,164 @@ class Game {
 		final boolean goodMediumTreeCost = this.computeCostToMediumTreeGrow(mediumTreesToGrow);
 		final boolean goodCompleteTreeCost = this.computeCostToCompleteTree(treesToComplete);
 		
-		if (day > 19) {
-			for (Tree tree : mediumTreesToGrow) {
-				final Action action = this.toDoAction(goodMediumTreeCost, tree);
-				if (action != null) {
-					return Action.parse(action.toString());
-				}
+		Action action = null;
+		if (day >= 21) {
+			action = this.toDoAction(goodCompleteTreeCost, treesToComplete);
+			if (action != null) {
+				return Action.parse(action.toString());
 			}
-			for (Tree tree : treesToComplete) {
-				final Action action = this.toDoAction(goodCompleteTreeCost, tree);
-				if (action != null) {
-					return Action.parse(action.toString());
-				}
+		}
+		if (day >= 19) {
+			action = this.toDoAction(goodMediumTreeCost, mediumTreesToGrow);
+			if (action != null) {
+				return Action.parse(action.toString());
 			}
 		}
 		
-		if (day >= 15 || day <= 18) {
-			for (Tree tree : mediumTreesToGrow) {
-				final Action action = this.toDoAction(goodMediumTreeCost, tree);
-				if (action != null) {
-					return Action.parse(action.toString());
-				}
+		if (day >= 18) {
+			action = this.toDoAction(goodTwigCost, twigsToGrow);
+			if (action != null) {
+				return Action.parse(action.toString());
 			}
 		}
+//		if (day >= 15 || day <= 18) {
+//			for (Tree tree : mediumTreesToGrow) {
+//				final Action action = this.toDoAction(goodMediumTreeCost, tree);
+//				if (action != null) {
+//					return Action.parse(action.toString());
+//				}
+//			}
+//		}
 		
+		// si il y a plus de X arbres gros alors en couper un
 		if (!this.checkMaxBigTreesSize()) {
-			// Ordonne de la plus petite richesse à la plus grande
-			final TreeMap<Cell, Action> treesToCut = new TreeMap<>((cell1, cell2) -> cell1.getRichess().compareTo(cell2.getRichess()));
-			for (Tree tree : treesToComplete) {
-				final Action action = this.toDoAction(goodCompleteTreeCost, tree);
-				if (action != null) {
-					System.err.println("My action : " + action);
-					final Optional<Cell> treeToCut = this.board.stream().filter(cell -> {
-							return cell.getIndex() == action.getTargetCellIdx();
-					}).findFirst();
-					System.err.println("My treeToCut : " + treeToCut);
-					if (treeToCut.isPresent()) {
-						treesToCut.put(treeToCut.get(), action);
-					}
+			// Ordonne de la plus petite richesse Ã  la plus grande
+			action = this.toDoAction(goodCompleteTreeCost, treesToComplete);
+			if (action != null) {
+				final Action finalAction = action;
+				final Optional<Cell> treeToCut = this.board.stream().filter(cell -> {
+						return cell.getIndex() == finalAction.getTargetCellIdx();
+				}).findFirst();
+				if (treeToCut.isPresent()) {
+					System.err.println("treeToCut : " + treeToCut);
+					return Action.parse(action.toString());
 				}
 			}
-			if (!treesToCut.isEmpty()) {
-				return Action.parse(treesToCut.firstEntry().getValue().toString());
-			}
 		}
-		// si il y a plus de 3 arbres moyens alors en faire grandir un
+		// si il y a plus de X arbres moyens alors en faire grandir un
 		if (!this.checkMaxMediumTreesSize()) {
-			for (Tree tree : mediumTreesToGrow) {
-				final Action action = this.toDoAction(goodMediumTreeCost, tree);
-				if (action != null) {
-					return Action.parse(action.toString());
-				}
+			action = this.toDoAction(goodMediumTreeCost, mediumTreesToGrow);
+			if (action != null) {
+				return Action.parse(action.toString());
 			}
 		}
-		// si il y a plus de 3 branches alors en faire grandir une
+		// si il y a plus de X branches alors en faire grandir une
 		if (!this.checkMaxTwigsSize()) {
-			for (Tree tree : twigsToGrow) {
-				final Action action = this.toDoAction(goodTwigCost, tree);
-				if (action != null) {
-					return Action.parse(action.toString());
-				}
-			}
-		}
-		for (Tree tree : seedsToGrow) {
-			final Action action = this.toDoAction(goodSeedCost, tree);
+			action = this.toDoAction(goodTwigCost, twigsToGrow);
 			if (action != null) {
 				return Action.parse(action.toString());
 			}
 		}
-		for (Tree tree : twigsToGrow) {
-			final Action action = this.toDoAction(goodTwigCost, tree);
-			if (action != null) {
-				return Action.parse(action.toString());
-			}
+		action = this.toDoAction(goodSeedCost, seedsToGrow);
+		if (action != null) {
+			return Action.parse(action.toString());
 		}
-		for (Tree tree : mediumTreesToGrow) {
-			final Action action = this.toDoAction(goodMediumTreeCost, tree);
-			if (action != null) {
-				return Action.parse(action.toString());
-			}
+		action = this.toDoAction(goodTwigCost, twigsToGrow);
+		if (action != null) {
+			return Action.parse(action.toString());
 		}
-
+		action = this.toDoAction(goodMediumTreeCost, mediumTreesToGrow);
+		if (action != null) {
+			return Action.parse(action.toString());
+		}
+		
 		System.err.println("this.seeds.isEmpty() : " + this.seeds.isEmpty());
 		System.err.println("!treesToSeed.isEmpty() : " + !treesToSeed.isEmpty());
 		
 		// Free move (planting only one seed)
 		if (this.seeds.isEmpty() && !treesToSeed.isEmpty()) {
-			System.err.println("treesToSeed");
-			treesToSeed.forEach(System.err::println);
+			treesToSeed.sort((act1, act2) -> {
+				if (act1.getTargetCellIdx() != null && act2.getTargetCellIdx() != null) {
+					return act1.getTargetCellIdx().compareTo(act2.getTargetCellIdx());
+				}
+				return 1;
+			});
 			Cell neighboursTarget = null;
-			// Ordonner de la plus grande richess à la plus petite
+			// Ordonner de la plus grande richess ï¿½ la plus petite
 			final List<Cell> targetRichess1 = new ArrayList<>();
 			final List<Cell> targetRichess2 = new ArrayList<>();
 			final List<Cell> targetRichess3 = new ArrayList<>();
 			
 			final BiConsumer<List<Cell>, Cell> consumer = (listCell, cell) -> listCell.add(cell);
-			for (Tree tree : this.trees) {
-				if (tree.isMine() && !tree.isDormant()) {
-					System.err.println("yolo");
-					
-//					neighboursCell.entrySet().stream().filter(neighbour -> neighbour.getKey() == tree.getCellIndex()).flatMap(neighbour -> neighbour.getValue().stream())
-//						.filter(cell -> !cell.isBusy()).forEach(cell -> {
-//							System.err.println("CELELLELELELEL : "+ cell);
-//							switch (cell.getRichess()) {
-//							case 1:
-//								consumer.accept(targetRichess1, cell);
-//								break;
-//							case 2:
-//								consumer.accept(targetRichess2, cell);
-//								break;
-//							case 3:
-//								consumer.accept(targetRichess3, cell);
-//								break;
-//							default:
-//								break;
-//							}
-//						});
-					System.err.println("The tree : " + tree);
-					neighboursCell.get(tree.getCellIndex()).stream().filter(cell -> {
-						System.err.println("CELELLELELELEL : "+ cell);
-						return !cell.isBusy();
-						}).forEach(cell -> {
-						switch (cell.getRichess()) {
-						case 1:
-							consumer.accept(targetRichess1, cell);
-							break;
-						case 2:
-							consumer.accept(targetRichess2, cell);
-							break;
-						case 3:
-							consumer.accept(targetRichess3, cell);
-							break;
-						default:
-							break;
-						}
-					});
+//			for (Tree tree : this.trees) {
+//				if (tree.isMine() && !tree.isDormant()) {
+////					final Optional<Action> action  = treesToSeed.stream().filter(act -> act.getSourceCellIdx() == tree.getCellIndex()).findFirst();
+//					
+////					if (action.isPresent()) {
+////					
+////						treesToSeed.stream().filter(action -> this.board.get(action.getTargetCellIdx()) != null).findFirst()
+////							.if(cell -> {
+////							});
+////					}
+//					
+////					.get(tree.getCellIndex()).stream().filter(cell -> {
+////						System.err.println("CELELLELELELEL : "+ cell);
+////						return !cell.isBusy();
+////						}).forEach(cell -> {
+////						switch (cell.getRichess()) {
+////						case 1:
+////							consumer.accept(targetRichess1, cell);
+////							break;
+////						case 2:
+////							consumer.accept(targetRichess2, cell);
+////							break;
+////						case 3:
+////							consumer.accept(targetRichess3, cell);
+////							break;
+////						default:
+////							break;
+////						}
+////					});
+//				}
+//			}
+			for (Action act : treesToSeed) {
+				final Cell targetCell = this.board.get(act.getTargetCellIdx());
+				if (targetCell != null) {
+					switch (targetCell.getRichess()) {
+					case 1:
+						consumer.accept(targetRichess1, targetCell);
+						break;
+					case 2:
+						consumer.accept(targetRichess2, targetCell);
+						break;
+					case 3:
+						consumer.accept(targetRichess3, targetCell);
+						break;
+					default:
+						break;
+					}
 				}
 			}
 
-			System.err.println("targetRichess3");
-			targetRichess3.forEach(System.err::println);
+//			System.err.println("targetRichess3");
+//			targetRichess3.forEach(System.err::println);
 			if (!targetRichess3.isEmpty()) {
 				// Try to get good neighbour
 				neighboursTarget = targetRichess3.get(0);
+				if (neighboursTarget.getIndex() == 0) {
+					neighboursTarget = null;
+				}
 			}
 
-			System.err.println("targetRichess2");
-			targetRichess2.forEach(System.err::println);
+//			System.err.println("targetRichess2");
+//			targetRichess2.forEach(System.err::println);
 			if (neighboursTarget == null && !targetRichess2.isEmpty()) {
 				// Try to get good neighbour
 				neighboursTarget = targetRichess2.get(0);
 			}
 
-			System.err.println("targetRichess1");
-			targetRichess1.forEach(System.err::println);
+//			System.err.println("targetRichess1");
+//			targetRichess1.forEach(System.err::println);
 			if (neighboursTarget == null && !targetRichess1.isEmpty()) {
 				// Try to get good neighbour
 				neighboursTarget = targetRichess1.get(0);
@@ -385,13 +389,12 @@ class Game {
 
 			if (neighboursTarget != null) {
 				System.err.println("neighboursTarget : " + neighboursTarget);
-				System.err.println("treesToSeed for neighboursTarget");
-				treesToSeed.forEach(System.err::println);
+//				System.err.println("treesToSeed for neighboursTarget");
+//				treesToSeed.forEach(System.err::println);
 
-				for (Action action : treesToSeed) {
-					if (action.getTargetCellIdx() == neighboursTarget.getIndex()) {
-						System.err.println("Action.parse(action.toString()) : " + Action.parse(action.toString()));
-						return Action.parse(action.toString());
+				for (Action act : treesToSeed) {
+					if (act.getTargetCellIdx() == neighboursTarget.getIndex()) {
+						return Action.parse(act.toString());
 					}
 				}
 			}
@@ -401,11 +404,11 @@ class Game {
 	}
 	
 	private boolean checkMaxTwigsSize() {
-		return this.twigs.size() <= 3;
+		return this.twigs.size() <= 2;
 	}
 	
 	private boolean checkMaxMediumTreesSize() {
-		return this.mediumTrees.size() <= 2;
+		return this.mediumTrees.size() <= 1;
 	}
 	
 	private boolean checkMaxBigTreesSize() {
@@ -413,7 +416,7 @@ class Game {
 	}
 
 	/**
-	 * Faire pousser une graine en un arbre de taille 1 coûte 1 point de soleil + le nombre d'arbres de taille 1 que vous possédez déjà.
+	 * Faire pousser une graine en un arbre de taille 1 coï¿½te 1 point de soleil + le nombre d'arbres de taille 1 que vous possï¿½dez dï¿½jï¿½.
 	 * @param seedsToGrow 
 	 * @return
 	 */
@@ -428,7 +431,7 @@ class Game {
 	}
 	
 	/**
-	 * Faire pousser un arbre de taille 1 en un arbre de taille 2 coûte 3 points de soleil + le nombre d'arbres de taille 2 que vous possédez déjà.
+	 * Faire pousser un arbre de taille 1 en un arbre de taille 2 coï¿½te 3 points de soleil + le nombre d'arbres de taille 2 que vous possï¿½dez dï¿½jï¿½.
 	 * @param twigsToGrow 
 	 * @return
 	 */
@@ -443,7 +446,7 @@ class Game {
 	}
 	
 	/**
-	 * Faire pousser un arbre de taille 2 en un arbre de taille 3 coûte 7 points de soleil + le nombre d'arbres de taille 3 que vous possédez déjà.
+	 * Faire pousser un arbre de taille 2 en un arbre de taille 3 coï¿½te 7 points de soleil + le nombre d'arbres de taille 3 que vous possï¿½dez dï¿½jï¿½.
 	 * @param mediumTreesToGrow 
 	 * @return
 	 */
@@ -458,7 +461,7 @@ class Game {
 	}
 	
 	/**
-	 * Faire pousser un arbre de taille 2 en un arbre de taille 3 coûte 7 points de soleil + le nombre d'arbres de taille 3 que vous possédez déjà.
+	 * Faire pousser un arbre de taille 2 en un arbre de taille 3 coï¿½te 7 points de soleil + le nombre d'arbres de taille 3 que vous possï¿½dez dï¿½jï¿½.
 	 * @param mediumTreesToGrow 
 	 * @return
 	 */
@@ -471,19 +474,21 @@ class Game {
 		return initialCost <= this.mySun;
 	}
 	
-	private Action toDoAction(final boolean goodCost, final Tree tree) {
+	private Action toDoAction(final boolean goodCost, final List<Tree> treeList) {
 		if (goodCost) {
-			final Optional<Action> optionalAction = this.possibleActions.stream().filter(action -> {
-				if (action.getTargetCellIdx() != null) {
-					return tree.getCellIndex() == action.getTargetCellIdx();
-				}
+			for (Tree tree : treeList) {
+				final Optional<Action> optionalAction = this.possibleActions.stream().filter(action -> {
+					if (action.getTargetCellIdx() != null) {
+						return tree.getCellIndex() == action.getTargetCellIdx();
+					}
+					
+					return false;
+				}).findFirst();
+				System.err.println("toGrow optionalAction : " + optionalAction);
 				
-				return false;
-			}).findFirst();
-			System.err.println("toGrow optionalAction : " + optionalAction);
-			
-			if (optionalAction.isPresent()) {
-				return Action.parse(optionalAction.get().toString());
+				if (optionalAction.isPresent()) {
+					return Action.parse(optionalAction.get().toString());
+				}
 			}
 		}
 		
@@ -555,7 +560,7 @@ class Game {
 		}
 
 		// Sort neighbours by richess
-		neighbours.sort((data1, data2) -> data2.getRichess().compareTo(data1.getRichess()));
+//		neighbours.sort((data1, data2) -> data2.getRichess().compareTo(data1.getRichess()));
 	}
 }
 

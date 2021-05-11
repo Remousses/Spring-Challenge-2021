@@ -40,3 +40,9 @@ java -jar C:/Users/remy9/Worskpace/eclipse/TransformJavaDirToOutputFile/target/T
 
 
 Pas mal de code dupliqué surtout à partir de moment où je grow (~90)
+
+Voir pour prioriser les grow par richess
+
+si possible de pousser et couper alors couper en premier comme ça on gane un soleil.
+
+Par pour si possible de faire deux evolution sur des tailles differente alors d'abord faire pusser la plus grosse
